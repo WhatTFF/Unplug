@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:unplug/models/app_group.dart';
 import 'package:unplug/services/storage_service.dart';
 
 void main() {
@@ -87,6 +88,58 @@ void main() {
 
     test('onboarding starts incomplete', () {
       expect(StorageService().onboardingComplete, isFalse);
+    });
+  });
+
+  group('in-app tab blockers', () {
+    // Spotlight and Stories are two tabs in the same app, so they can only be
+    // told apart by id and name. Collapsing them into one preset would make
+    // "block Stories but keep Spotlight" impossible to express.
+    test('both Snapchat tabs ship as separate, off-by-default presets', () {
+      final blockers = StorageService().loadGlobalTabBlockers();
+      final snap = blockers
+          .where((b) => b.packageName == 'com.snapchat.android')
+          .toList();
+
+      final names = snap.map((b) => b.name).toSet();
+      expect(names, contains('Snapchat Spotlight'));
+      expect(names, contains('Snapchat Stories'));
+
+      for (final b in snap) {
+        expect(b.isEnabled, isFalse,
+            reason: 'a blocker that ships on would restrict an app nobody '
+                'asked it to touch');
+        expect(b.contentKeywords, isNotEmpty);
+      }
+
+      expect(snap.map((b) => b.id).toSet().length, equals(snap.length),
+          reason: 'ids key the stored list, so duplicates would collapse one '
+              'preset into the other on load');
+    });
+
+    // The list is stored, so a build that adds a preset only reaches existing
+    // users through the merge in loadGlobalTabBlockers. Without it, the new
+    // option would exist for fresh installs and nobody else.
+    test('a preset added later appears for an install that already has a list',
+        () async {
+      await StorageService().saveGlobalTabBlockers([
+        BannedFeature(
+          id: 'snap_spotlight',
+          name: 'Snapchat Spotlight',
+          packageName: 'com.snapchat.android',
+          isEnabled: true,
+          contentKeywords: const ['spotlight'],
+        ),
+      ]);
+
+      final loaded = StorageService().loadGlobalTabBlockers();
+      final stories = loaded.firstWhere((b) => b.id == 'snap_stories');
+      expect(stories.isEnabled, isFalse);
+
+      // The user's own choice on the preset they already had must survive the
+      // merge untouched.
+      final spotlight = loaded.firstWhere((b) => b.id == 'snap_spotlight');
+      expect(spotlight.isEnabled, isTrue);
     });
   });
 

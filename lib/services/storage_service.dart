@@ -201,6 +201,22 @@ class StorageService {
           contentKeywords: ['spotlight', 'spotlight_tab', 'discover_spotlight'],
           activityPattern: '.*spotlight.*',
         ),
+        // Separate from Spotlight on purpose: these are two different tabs, and
+        // blocking one has to leave the other working — plenty of people want
+        // Spotlight gone and Stories kept, or the reverse. Same package, so the
+        // two presets are only distinguishable by id and name, never by app.
+        //
+        // "stories" rather than "story" on purpose. The plural is the tab and
+        // the screen header; the singular is the "Add to Story" button on the
+        // camera, and matching that would block sending a snap.
+        BannedFeature(
+          id: 'snap_stories',
+          name: 'Snapchat Stories',
+          packageName: 'com.snapchat.android',
+          isEnabled: false,
+          contentKeywords: ['stories', 'stories_tab', 'story_tab', 'discover_stories'],
+          activityPattern: '.*stories.*|.*story_tab.*',
+        ),
         BannedFeature(
           id: 'yt_shorts',
           name: 'YouTube Shorts',
@@ -307,6 +323,14 @@ class StorageService {
         isEnabled: false,
         contentKeywords: ['spotlight', 'spotlight_tab', 'discover_spotlight'],
         activityPattern: '.*spotlight.*',
+      ));
+      list.add(BannedFeature(
+        id: 'snap_stories',
+        name: 'Snapchat Stories',
+        packageName: 'com.snapchat.android',
+        isEnabled: false,
+        contentKeywords: ['stories', 'stories_tab', 'story_tab', 'discover_stories'],
+        activityPattern: '.*stories.*|.*story_tab.*',
       ));
     }
     if (pkgs.contains('com.google.android.youtube') || groupName == 'Entertainment') {
@@ -619,6 +643,14 @@ class StorageService {
               isEnabled: false,
               contentKeywords: ['spotlight', 'spotlight_tab', 'discover_spotlight'],
               activityPattern: '.*spotlight.*',
+            ),
+            BannedFeature(
+              id: 'snap_stories',
+              name: 'Snapchat Stories',
+              packageName: 'com.snapchat.android',
+              isEnabled: false,
+              contentKeywords: ['stories', 'stories_tab', 'story_tab', 'discover_stories'],
+              activityPattern: '.*stories.*|.*story_tab.*',
             ),
           ],
         ),

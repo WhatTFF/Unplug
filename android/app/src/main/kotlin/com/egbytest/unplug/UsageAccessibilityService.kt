@@ -1286,7 +1286,7 @@ class UsageAccessibilityService : AccessibilityService() {
      * The open gate: every entry into a gated package waits here first. The app
      * is already running behind the window — nothing has been closed or paused
      * on its behalf — so "Open" is simply removing the overlay, and "Go back"
-     * is removing it and pressing back out of the app.
+     * is removing it and going to the launcher.
      */
     private fun showOpenGate(pkg: String, group: String) {
         // Already inside this gate for this entry, or mid-block: nothing to do.
@@ -1321,9 +1321,28 @@ class UsageAccessibilityService : AccessibilityService() {
                 removeOverlay()
             })
             choices.addView(overlayButton(ctx, "Go back", false) {
-                Log.i(TAG, "gate declined for $pkg")
+                Log.i(TAG, "gate declined for $pkg — going home")
                 removeOverlay()
-                performGlobalAction(GLOBAL_ACTION_BACK)
+                // HOME, not BACK. The gated app was launched from wherever the
+                // user tapped it, so BACK finishes it and hands the foreground
+                // straight back to that app — which is how "Go back" ended up
+                // opening TikTok: the user came from TikTok, so one back press
+                // landed them in TikTok, an app the same gate may also cover.
+                // "Go back" means "I did not mean to open this", and the
+                // launcher is the only place that is true from.
+                val wentHome = performGlobalAction(GLOBAL_ACTION_HOME)
+                // The launcher is a system surface, so onForegroundChanged
+                // ignores it and would leave the gated package recorded as the
+                // app in front. The next launch would then look like no entry
+                // at all, and the gate would never ask again. Clearing both
+                // makes leaving and coming back a genuine entry. Only done when
+                // the home press actually landed: if it failed the user is
+                // still in the app, and re-arming here would put the gate back
+                // up over a decline they just made.
+                if (wentHome) {
+                    lastForegroundPkg = ""
+                    gateShownFor = ""
+                }
             })
             root.addView(choices)
 

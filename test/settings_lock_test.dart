@@ -81,9 +81,10 @@ void main() {
     // Spotlight switches on free and asks a challenge to switch off.
     //
     // Both: on free, off challenged.
-    // Break reminder only: retuning the interval of one that is already on
-    // is challenged too, since it loosens a live setting without turning it
-    // off.
+    // Break reminder only: retuning the interval follows the same rule one
+    // level down — shorter interrupts sooner and is free, longer buys more
+    // uninterrupted use and is challenged. It is a budget of uninterrupted
+    // time, so it behaves exactly like the daily limit, not like the wait.
 
     /// Both features live behind a group's action sheet, and the sheet also
     /// holds "Edit Time Limit", so the row is targeted by its own label.
@@ -157,7 +158,7 @@ void main() {
       expect(StorageService().loadGroups().first.breakReminderEnabled, isTrue);
     });
 
-    testWidgets('retuning a running reminder is gated', (tester) async {
+    testWidgets('raising a running reminder interval is gated', (tester) async {
       await StorageService().setSettingsLockEnabled(true);
       await StorageService().saveGroups([
         AppGroup(
@@ -173,7 +174,9 @@ void main() {
       await tester.tap(groupRow('Break Reminder: On (10m)'));
       await tester.pumpAndSettle();
 
-      // Scroll the minute wheel off 10 and save.
+      // Scroll the minute wheel up from 10 and save. More minutes before the
+      // interruption is more uninterrupted use, so this is the loosening
+      // direction.
       await tester.drag(find.byType(CupertinoPicker).last, const Offset(0, -40));
       await tester.pumpAndSettle();
       await tester.tap(sheetSave());
@@ -183,12 +186,56 @@ void main() {
         find.text('Confirm Change'),
         findsOneWidget,
         reason: 'the interval is how long use can continue before the '
-            'reminder interrupts, so retuning a live one is weakening it',
+            'reminder interrupts, so lengthening a live one is weakening it',
       );
       expect(
         StorageService().loadGroups().first.breakReminderMinutes,
         equals(10),
         reason: 'the old interval must stand until the challenge is met',
+      );
+    });
+
+    // Shortening the interval interrupts the user sooner, which is them
+    // tightening their own guard — the same direction as lowering a limit,
+    // and free for the same reason. Moving 10m to 5m used to open a challenge,
+    // which charged a wait for making the app stricter than it already was.
+    testWidgets('lowering a running reminder interval is free', (tester) async {
+      await StorageService().setSettingsLockEnabled(true);
+      await StorageService().saveGroups([
+        AppGroup(
+          name: 'Social Media',
+          packageNames: const ['com.instagram.android'],
+          timeLimitMinutes: 30,
+          breakReminderEnabled: true,
+          breakReminderMinutes: 10,
+        ),
+      ]);
+      await openFirstGroupSheet(tester);
+
+      await tester.tap(groupRow('Break Reminder: On (10m)'));
+      await tester.pumpAndSettle();
+
+      // One row at a time down the minute wheel, so the landing value is the
+      // only thing under test rather than a fling's momentum.
+      for (int i = 0; i < 5; i++) {
+        await tester.drag(
+            find.byType(CupertinoPicker).last, const Offset(0, 40));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(sheetSave());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirm Change'), findsNothing);
+      expect(
+        StorageService().loadGroups().first.breakReminderMinutes,
+        lessThan(10),
+        reason: 'a shorter interval must apply immediately, with no challenge '
+            'and no wait',
+      );
+      expect(
+        StorageService().loadGroups().first.breakReminderEnabled,
+        isTrue,
+        reason: 'retuning must not switch the reminder off',
       );
     });
 

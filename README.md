@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>Version 2.2.6</strong> · Android 7.0+ · Free · No accounts
+  <strong>Version 2.2.7 (beta)</strong> · Android 7.0+ · Free · No accounts
 </p>
 
 ---
@@ -26,7 +26,7 @@ You have 40 minutes of Instagram a day. Unplug holds you to it.
 
 It does that in a way that doesn't make you uninstall it. When you're out, you get a full-screen lock with two ways through: **wait**, or **write**. Both are deliberately a bit annoying. That's the feature.
 
-The difference from apps like this that you hate: it doesn't delete anything, and it doesn't nuke an app for being open. It blocks the *tab* that actually eats your life — Shorts, Reels, Spotlight — and leaves the rest of the app alone.
+The difference from apps like this that you hate: it doesn't delete anything, and it doesn't nuke an app for being open. It blocks the *tab* that actually eats your life — Shorts, Reels, Spotlight, Stories — and leaves the rest of the app alone.
 
 **Everything stays on your phone.** No account, no sign-up, no cloud, no analytics. The only thing it ever sends anywhere is a check for whether a newer version exists.
 
@@ -37,8 +37,10 @@ The difference from apps like this that you hate: it doesn't delete anything, an
 There's no Play Store listing. Get the APK from the
 [releases page](https://github.com/EGBYtest/Unplug/releases/latest) and install it.
 
+**2.2.7 is a beta.** It's published as a pre-release, so the in-app update banner won't offer it — `releases/latest` still points at 2.2.6, and the banner is how the app tells you a newer version exists. To try the beta, install the APK from the release itself, by hand.
+
 - Android 7.0 or newer
-- ~49 MB
+- ~51 MB
 - You'll need to allow your browser to "install unknown apps"
 
 **Your phone will warn you. That's expected, and it's about the app, not you.** Google Play Protect flags any app it hasn't seen before — Unplug is new and has almost no installs, so it has no reputation with Google. The warning means *"I don't know this app"*, **not** *"I found something bad"*.
@@ -83,7 +85,7 @@ These manufacturers bury the accessibility list somewhere different, and their b
 
 Both are **off by default** and both are set **per group**, so you can gate a messaging app and leave a two-tap calculator alone. Settings → tap a group → the two rows at the bottom of the sheet.
 
-**Open gate.** Every time you open one of that group's apps, a full-screen countdown runs with no way through. After five seconds two buttons appear: **Open Instagram**, or **Go back**. The app isn't closed or paused behind it — the gate is just a question, asked on top of an app that already launched. Leaving the screen dismisses it.
+**Open gate.** Every time you open one of that group's apps, a full-screen countdown runs with no way through. After five seconds two buttons appear: **Open Instagram**, or **Go back**. The app isn't closed or paused behind it — the gate is just a question, asked on top of an app that already launched. Leaving the screen dismisses it. **Go back** takes you to your home screen, not to whatever app you tapped the icon in — if you came from TikTok, it doesn't hand you TikTok.
 
 **Break reminder.** After you've been in one of that group's apps *continuously* for a set number of minutes (10 by default, 1–60 if you prefer), it asks whether this was meant to be a long sit or a quick check. It doesn't dismiss itself and it doesn't close anything — after five seconds a **Close** button appears, and it's waiting for you.
 
@@ -91,7 +93,7 @@ Both work the same way the lock screen does: a real system-level overlay, drawn 
 
 Switching one **on** is free — same as the tab blockers, where turning Snapchat Spotlight on never asks anything. You're arming a guard on yourself, and that shouldn't cost you a wait. Switching one **off** asks the challenge, because that's the direction that takes the guard away.
 
-The **break reminder** asks in one more case. Its interval is how long you can use the app before it interrupts, so changing that on a reminder that's already running asks the challenge too — it's the one action here that loosens a live setting without turning it off. Choosing the interval in the same pass that switches it on stays free, since that's part of arming it.
+The **break reminder**'s interval follows the same rule, because it is a budget too: it's how long you can use the app before it interrupts. Shortening it — 10m down to 5m — interrupts you sooner, so it's free. Lengthening it buys more uninterrupted time, so that's the direction that asks. Choosing the interval in the same pass that switches the reminder on is free either way, since that's part of arming it.
 
 Creating a group is free as well. A new group starts at the default limit with both of these off, so it can't loosen anything.
 
@@ -127,7 +129,7 @@ This is the part that makes Unplug survivable.
 |---|---|---|
 | YouTube | Shorts | Everything else |
 | Instagram | Reels | Feed, DMs, stories |
-| Snapchat | Spotlight | Camera, chat, map |
+| Snapchat | Spotlight, Stories | Camera, chat, map |
 | TikTok | For You | Profile, inbox |
 | Facebook | Reels & Watch | Feed, groups, messenger |
 | Reddit | Popular / Watch / Shorts | Your subreddits |
@@ -156,6 +158,8 @@ Concretely:
 | Reward per wait 3m → 5m | Yes — more free time for the same wait |
 | Wait duration 30s → 60s | No — you made the deal harder on yourself |
 | Wait duration 60s → 30s | Yes — same reward, less effort |
+| Break reminder 10m → 5m | No — it interrupts you sooner |
+| Break reminder 5m → 10m | Yes — more time before it asks |
 
 The wait is the one that reads backwards, and deliberately: it's the price of a reward rather than a budget, so its permissive end is the lower one. Making it longer costs you more for the same thing, which is you tightening it.
 

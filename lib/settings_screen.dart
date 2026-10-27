@@ -461,12 +461,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 //                         loosening.
 //   turning OFF           challenge, for both. This is the direction that
 //                         takes the guard away.
-//   retuning the interval → challenge, while the reminder is already on. It
-//                         has no off state to move, so it is the one action
-//                         here that loosens a live setting without turning it
-//                         off — the number is how long the app can be used
-//                         before it interrupts, and moving it is weakening the
-//                         thing the setting exists to do.
+//   retuning the interval → free when it goes DOWN, challenge when it goes UP.
+//                         The interval is how long the app can be used before
+//                         it interrupts, so it is a budget of uninterrupted
+//                         time: a shorter one interrupts sooner, which is the
+//                         same tightening direction as lowering a limit. A
+//                         longer one buys more time between questions, and that
+//                         is the loosening direction — the one that asks.
 
 Future<void> _setOpenGate(int index, bool value) async {
     setState(() {
@@ -487,6 +488,7 @@ Future<void> _editOpenGate(int index) async {
 Future<void> _editBreakReminder(int index) async {
     final group = _groups[index];
     final wasEnabled = group.breakReminderEnabled;
+    final beforeMinutes = group.breakReminderMinutes;
 
     final result = await showCupertinoModalPopup<_BreakReminderResult>(
       context: context,
@@ -511,7 +513,7 @@ Future<void> _editBreakReminder(int index) async {
     // Nothing actually changed — saving the sheet untouched is not a change
     // and must not open a challenge for one.
     if (result.enabled == wasEnabled &&
-        result.minutes == group.breakReminderMinutes) {
+        result.minutes == beforeMinutes) {
       return;
     }
 
@@ -522,9 +524,22 @@ Future<void> _editBreakReminder(int index) async {
       return;
     }
 
-    // Everything else loosens something: turning it off, or moving the
-    // interval of one that is already running. Both ask.
-    _confirmChange(apply);
+    // Turning it off takes the guard away, whichever interval is stored
+    // alongside it.
+    if (wasEnabled && !result.enabled) {
+      _confirmChange(apply);
+      return;
+    }
+
+    // Retuning a reminder that is already running. Shorter interrupts sooner,
+    // which is the user tightening their own guard — the same rule that makes
+    // lowering a limit free. Only a longer interval asks. Moving 10m to 5m used
+    // to open a challenge, which charged the user a wait for making the app
+    // stricter than it already was.
+    await _applyLoosening(
+      apply,
+      loosens: loosensBudget(beforeMinutes, result.minutes),
+    );
   }
 
 void _toggleBannedFeature(BannedFeature feature, bool isEnabled) async {
@@ -612,14 +627,14 @@ final bonusSeconds = _storage.remainingBonusSeconds(
                   backgroundColor: Colors.black,
                   decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(12)),
                   header: const Text('IN-APP TAB BLOCKERS', style: TextStyle(color: Colors.white54)),
-                  footer: const Text('Blocks short-form content tabs (YouTube Shorts, Instagram Reels, Snapchat Spotlight, etc.) while keeping the rest of the application accessible. Turning a blocker on is instant — turning it off requires a challenge.', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  footer: const Text('Blocks short-form content tabs (YouTube Shorts, Instagram Reels, Snapchat Spotlight & Stories, etc.) while keeping the rest of the application accessible. Turning a blocker on is instant — turning it off requires a challenge.', style: TextStyle(color: Colors.white38, fontSize: 12)),
                   children: _globalTabBlockers.isEmpty
                       ? [
                           CupertinoListTile(
                             backgroundColor: const Color(0xFF1C1C1E),
                             leading: const Icon(CupertinoIcons.arrow_counterclockwise, color: Color(0xFF0A84FF), size: 22),
                             title: const Text('Load Default Tab Blockers', style: TextStyle(color: Colors.white)),
-                            subtitle: const Text('Tap to load YouTube Shorts, Instagram Reels & Snapchat Spotlight blockers', style: TextStyle(color: Colors.white38, fontSize: 12)),
+                            subtitle: const Text('Tap to load YouTube Shorts, Instagram Reels & Snapchat Spotlight/Stories blockers', style: TextStyle(color: Colors.white38, fontSize: 12)),
                             onTap: () => _confirmChange(() async {
                               final defaults = _storage.loadGlobalTabBlockers();
                               setState(() { _globalTabBlockers = defaults; });
