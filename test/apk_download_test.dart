@@ -37,7 +37,7 @@ void main() {
     test('is the release download path for the tag it found', () {
       expect(
         info('2.1.0', true).apkUrl,
-        'https://github.com/EGBYtest/Unplug/releases/download/v2.1.0/app-release.apk',
+        'https://github.com/WhatTFF/Unplug/releases/download/v2.1.0/app-release.apk',
       );
     });
 

@@ -785,7 +785,7 @@ final bonusSeconds = _storage.remainingBonusSeconds(
                       additionalInfo: const Text('GitHub', style: TextStyle(color: Color(0xFF0A84FF))),
                       trailing: const CupertinoListTileChevron(),
                       onTap: () async {
-                        final uri = Uri.parse('https://github.com/EGBYtest/Unplug');
+                        final uri = Uri.parse('https://github.com/WhatTFF/Unplug');
                         if (await canLaunchUrl(uri)) {
                           await launchUrl(uri);
                         }
@@ -798,7 +798,7 @@ final bonusSeconds = _storage.remainingBonusSeconds(
                       subtitle: const Text('Report bugs or suggest features', style: TextStyle(color: Colors.white38, fontSize: 12)),
                       trailing: const CupertinoListTileChevron(),
                       onTap: () async {
-                        final uri = Uri.parse('https://github.com/EGBYtest/Unplug/issues');
+                        final uri = Uri.parse('https://github.com/WhatTFF/Unplug/issues');
                         if (await canLaunchUrl(uri)) {
                           await launchUrl(uri);
                         }

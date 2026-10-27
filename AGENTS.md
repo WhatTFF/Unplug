@@ -107,7 +107,7 @@ something unfinished.
 Check what the checker will actually see:
 
 ```bash
-gh api repos/EGBYtest/Unplug/releases/latest --jq .tag_name
+gh api repos/WhatTFF/Unplug/releases/latest --jq .tag_name
 ```
 
 ## Release rule: the README is part of every release

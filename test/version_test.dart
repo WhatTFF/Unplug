@@ -40,7 +40,7 @@ void main() {
 
     test('both sources are reachable and report a parseable version', () async {
       final api = await fetch(
-        'https://api.github.com/repos/EGBYtest/Unplug/releases/latest',
+        'https://api.github.com/repos/WhatTFF/Unplug/releases/latest',
       );
       expect(api.status, 200, reason: 'GitHub Releases API unreachable');
       final tag =
@@ -49,7 +49,7 @@ void main() {
           reason: 'tag_name is not a version string');
 
       final raw = await fetch(
-        'https://raw.githubusercontent.com/EGBYtest/Unplug/main/VERSION',
+        'https://raw.githubusercontent.com/WhatTFF/Unplug/main/VERSION',
       );
       expect(raw.status, 200, reason: 'raw VERSION file unreachable');
       expect(raw.body.trim(), matches(RegExp(r'^\d+\.\d+\.\d+$')),
@@ -72,13 +72,13 @@ void main() {
     test('the VERSION file at the release tag matches the release tag',
         () async {
       final api = await fetch(
-        'https://api.github.com/repos/EGBYtest/Unplug/releases/latest',
+        'https://api.github.com/repos/WhatTFF/Unplug/releases/latest',
       );
       final tag = (jsonDecode(api.body) as Map<String, dynamic>)['tag_name']
           as String;
 
       final raw = await fetch(
-        'https://raw.githubusercontent.com/EGBYtest/Unplug/$tag/VERSION',
+        'https://raw.githubusercontent.com/WhatTFF/Unplug/$tag/VERSION',
       );
       expect(raw.status, 200, reason: 'tagged VERSION file unreachable');
 
@@ -142,7 +142,7 @@ void main() {
 
     UpdateInfo avail(String v) => UpdateInfo(
           latestVersion: v,
-          downloadUrl: 'https://github.com/EGBYtest/Unplug/releases/tag/v$v',
+          downloadUrl: 'https://github.com/WhatTFF/Unplug/releases/tag/v$v',
           isAvailable: true,
         );
     const none = UpdateInfo(

@@ -28,13 +28,13 @@ class UpdateInfo {
   /// Empty when there is no update, so a caller cannot accidentally hand the
   /// installer a link to the bare `v` tag.
   String get apkUrl => isAvailable && latestVersion.isNotEmpty
-      ? 'https://github.com/EGBYtest/Unplug/releases/download/v$latestVersion/app-release.apk'
+      ? 'https://github.com/WhatTFF/Unplug/releases/download/v$latestVersion/app-release.apk'
       : '';
 }
 
 class UpdateChecker {
-  static const _githubApi = 'https://api.github.com/repos/EGBYtest/Unplug/releases/latest';
-  static const _githubFallback = 'https://raw.githubusercontent.com/EGBYtest/Unplug/main/VERSION';
+  static const _githubApi = 'https://api.github.com/repos/WhatTFF/Unplug/releases/latest';
+  static const _githubFallback = 'https://raw.githubusercontent.com/WhatTFF/Unplug/main/VERSION';
 
   /// Version of the running build. Generated from pubspec.yaml — see
   /// tool/gen_version.sh. Do not hardcode a version string here.
@@ -192,7 +192,7 @@ class UpdateChecker {
           update: UpdateInfo(
             latestVersion: latestVersion,
             downloadUrl:
-                'https://github.com/EGBYtest/Unplug/releases/tag/v$latestVersion',
+                'https://github.com/WhatTFF/Unplug/releases/tag/v$latestVersion',
             isAvailable: true,
           ),
           ok: true,
@@ -254,7 +254,7 @@ class UpdateChecker {
         ? null
         : UpdateInfo(
             latestVersion: latestVersion,
-            downloadUrl: 'https://github.com/EGBYtest/Unplug/releases/tag/v$latestVersion',
+            downloadUrl: 'https://github.com/WhatTFF/Unplug/releases/tag/v$latestVersion',
             isAvailable: true,
           );
   }

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/EGBYtest/Unplug/releases/latest">
+  <a href="https://github.com/WhatTFF/Unplug/releases/latest">
     <img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download APK">
   </a>
 </p>
@@ -35,7 +35,7 @@ The difference from apps like this that you hate: it doesn't delete anything, an
 ## Install it
 
 There's no Play Store listing. Get the APK from the
-[releases page](https://github.com/EGBYtest/Unplug/releases/latest) and install it.
+[releases page](https://github.com/WhatTFF/Unplug/releases/latest) and install it.
 
 **2.2.7 is a beta.** It's published as a pre-release, so the in-app update banner won't offer it — `releases/latest` still points at 2.2.6, and the banner is how the app tells you a newer version exists. To try the beta, install the APK from the release itself, by hand.
 
@@ -45,7 +45,7 @@ There's no Play Store listing. Get the APK from the
 
 **Your phone will warn you. That's expected, and it's about the app, not you.** Google Play Protect flags any app it hasn't seen before — Unplug is new and has almost no installs, so it has no reputation with Google. The warning means *"I don't know this app"*, **not** *"I found something bad"*.
 
-If that makes you uneasy, don't install it. That's a reasonable call. But know that the entire app is on [this page](https://github.com/EGBYtest/Unplug) — the Flutter UI in `lib/`, the enforcement code in `android/`, all of it. If you'd rather read it than trust it, that's the better order.
+If that makes you uneasy, don't install it. That's a reasonable call. But know that the entire app is on [this page](https://github.com/WhatTFF/Unplug) — the Flutter UI in `lib/`, the enforcement code in `android/`, all of it. If you'd rather read it than trust it, that's the better order.
 
 When you open it, it asks for three things. Here's what each one actually does:
 
@@ -209,7 +209,7 @@ The banner only shows when there's genuinely something newer, and you can dismis
 ## Building it
 
 ```bash
-git clone https://github.com/EGBYtest/Unplug.git
+git clone https://github.com/WhatTFF/Unplug.git
 cd Unplug
 flutter pub get
 flutter build apk --release
