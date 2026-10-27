@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>Version 2.2.7 (beta)</strong> · Android 7.0+ · Free · No accounts
+  <strong>Version 2.2.8</strong> · Android 7.0+ · Free · No accounts
 </p>
 
 ---
@@ -37,7 +37,7 @@ The difference from apps like this that you hate: it doesn't delete anything, an
 There's no Play Store listing. Get the APK from the
 [releases page](https://github.com/WhatTFF/Unplug/releases/latest) and install it.
 
-**2.2.7 is a beta.** It's published as a pre-release, so the in-app update banner won't offer it — `releases/latest` still points at 2.2.6, and the banner is how the app tells you a newer version exists. To try the beta, install the APK from the release itself, by hand.
+**2.2.8 is the current release, and the banner will offer it.** 2.2.7 went out as a pre-release only, so `releases/latest` never pointed at it and the banner never showed it. Coming from 2.2.6, you move straight to 2.2.8 — there's nothing to install by hand.
 
 - Android 7.0 or newer
 - ~51 MB
