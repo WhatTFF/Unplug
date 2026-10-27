@@ -12,10 +12,13 @@
   <a href="https://github.com/WhatTFF/Unplug/releases/latest">
     <img src="https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android" alt="Download APK">
   </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge&logo=gnu" alt="License: GPL-3.0">
+  </a>
 </p>
 
 <p align="center">
-  <strong>Version 2.2.8</strong> · Android 7.0+ · Free · No accounts
+  <strong>Version 2.2.8</strong> · Android 7.0+ · Free · Open source · No accounts
 </p>
 
 ---
