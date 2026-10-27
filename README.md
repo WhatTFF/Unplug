@@ -257,4 +257,24 @@ working while the app is closed.
 
 ## License
 
-All rights reserved.
+Unplug is free software under the **GNU General Public License, version 3.0
+only**. See [LICENSE](LICENSE) for the full text.
+
+You can read it, build it, change it, and share it. If you distribute a changed
+version, it has to stay under the same licence, with the source available. That
+is deliberate: the whole point of this app is that you can check what it does to
+your phone, and a closed fork of it would defeat that. It also means nobody can
+take this code, add ads and an account system, and ship it as the same app.
+
+The name and icon are not part of that grant — a modified build is not Unplug
+and should not be presented as it.
+
+## Contributing
+
+Bug reports, device reports, and small pull requests are welcome. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) first — especially if you plan to touch the
+Kotlin enforcement code, which has no test harness and needs a real device.
+Participation is covered by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+For a security problem, use the private advisory form in
+[SECURITY.md](SECURITY.md), not a public issue.
