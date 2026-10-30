@@ -35,6 +35,21 @@ The difference from apps like this that you hate: it doesn't delete anything, an
 
 ---
 
+## See it
+
+<p align="center">
+  <a href="docs/SCREENSHOTS.md">
+    <img src="docs/screenshots/coming-soon.svg" width="200" alt="Screenshots coming soon">
+  </a>
+</p>
+
+Screenshots and short GIFs of the dashboard, lock screen, wait timer, open gate
+and settings are being captured on a real device. **[The gallery page](docs/SCREENSHOTS.md)**
+lists every screen and names the file each one will use — it fills in as they
+land.
+
+---
+
 ## Install it
 
 There's no Play Store listing. Get the APK from the
