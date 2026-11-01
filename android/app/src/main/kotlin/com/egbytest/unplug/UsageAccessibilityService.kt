@@ -94,6 +94,30 @@ class UsageAccessibilityService : AccessibilityService() {
     /** True when this package has already been gated for the current entry. */
     private var gateShownFor = ""
 
+    // ─── Open gate cooldown ─────────────────────────────────────────────
+    //
+    // The gate asks "did you mean to open this?". Someone who has just said
+    // yes, and left and come back within half a minute, has already answered
+    // it — asking again is friction without a decision behind it. The window
+    // is deliberately short: long enough to cover a quick detour out of the
+    // app, short enough that the gate still catches the next deliberate visit.
+    private val GATE_COOLDOWN_MS = 30_000L
+
+    /** pkg -> wall-clock time at which its gate cooldown expires. */
+    private val gateCooldownUntil = mutableMapOf<String, Long>()
+
+    /** True when [pkg]'s gate was passed recently enough to skip asking again. */
+    private fun gateOnCooldown(pkg: String): Boolean {
+        val until = gateCooldownUntil[pkg] ?: return false
+        if (System.currentTimeMillis() >= until) {
+            // Expired entries are dropped here rather than by a timer: nothing
+            // reads this map except an entry into the package.
+            gateCooldownUntil.remove(pkg)
+            return false
+        }
+        return true
+    }
+
     // ─── Continuous-use session ─────────────────────────────────────────
     //
     // Start of the current uninterrupted sit in one restricted app. Reset on a
@@ -1097,7 +1121,13 @@ class UsageAccessibilityService : AccessibilityService() {
             if (total == 0 || used >= total) return
 
             if (group.optBoolean("openGateEnabled", false)) {
-                showOpenGate(pkg, name)
+                if (gateOnCooldown(pkg)) {
+                    // Passed the gate moments ago: shown again, it would ask a
+                    // question the user just answered. The app opens as normal.
+                    Log.i(TAG, "open gate skipped for $pkg (cooldown)")
+                } else {
+                    showOpenGate(pkg, name)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "foreground change error", e)
@@ -1318,6 +1348,9 @@ class UsageAccessibilityService : AccessibilityService() {
             }
             choices.addView(overlayButton(ctx, "Open $label", true) {
                 Log.i(TAG, "gate passed for $pkg")
+                // The next entry into this app inside the cooldown opens
+                // straight through: the question has just been answered.
+                gateCooldownUntil[pkg] = System.currentTimeMillis() + GATE_COOLDOWN_MS
                 removeOverlay()
             })
             choices.addView(overlayButton(ctx, "Go back", false) {

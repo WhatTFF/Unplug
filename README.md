@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <strong>Version 2.2.8</strong> · Android 7.0+ · Free · Open source · No accounts
+  <strong>Version 2.2.9</strong> · Android 7.0+ · Free · Open source · No accounts
 </p>
 
 ---
@@ -55,7 +55,7 @@ land.
 There's no Play Store listing. Get the APK from the
 [releases page](https://github.com/WhatTFF/Unplug/releases/latest) and install it.
 
-**2.2.8 is the current release, and the banner will offer it.** 2.2.7 went out as a pre-release only, so `releases/latest` never pointed at it and the banner never showed it. Coming from 2.2.6, you move straight to 2.2.8 — there's nothing to install by hand.
+**2.2.9 is the current release, and the banner will offer it.** It changes one thing: after you accept the open gate, that app opens straight through for the next 30 seconds instead of asking again on a quick detour out and back. Everything else is 2.2.8.
 
 - Android 7.0 or newer
 - ~51 MB
@@ -103,7 +103,7 @@ These manufacturers bury the accessibility list somewhere different, and their b
 
 Both are **off by default** and both are set **per group**, so you can gate a messaging app and leave a two-tap calculator alone. Settings → tap a group → the two rows at the bottom of the sheet.
 
-**Open gate.** Every time you open one of that group's apps, a full-screen countdown runs with no way through. After five seconds two buttons appear: **Open Instagram**, or **Go back**. The app isn't closed or paused behind it — the gate is just a question, asked on top of an app that already launched. Leaving the screen dismisses it. **Go back** takes you to your home screen, not to whatever app you tapped the icon in — if you came from TikTok, it doesn't hand you TikTok.
+**Open gate.** Every time you open one of that group's apps, a full-screen countdown runs with no way through. After five seconds two buttons appear: **Open Instagram**, or **Go back**. The app isn't closed or paused behind it — the gate is just a question, asked on top of an app that already launched. Leaving the screen dismisses it. **Go back** takes you to your home screen, not to whatever app you tapped the icon in — if you came from TikTok, it doesn't hand you TikTok. **Open** counts as an answer: leave and come back within 30 seconds and that app opens straight through, because asking the same question twice in half a minute isn't a decision. After 30 seconds the gate asks again.
 
 **Break reminder.** After you've been in one of that group's apps *continuously* for a set number of minutes (10 by default, 1–60 if you prefer), it asks whether this was meant to be a long sit or a quick check. It doesn't dismiss itself and it doesn't close anything — after five seconds a **Close** button appears, and it's waiting for you.
 
