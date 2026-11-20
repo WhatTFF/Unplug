@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <strong>Version 2.2.9</strong> · Android 7.0+ · Free · Open source · No accounts
+  <strong>Version 2.3.0</strong> · Android 7.0+ · Free · Open source · No accounts
 </p>
 
 ---
@@ -58,7 +58,7 @@ land.
 There's no Play Store listing. Get the APK from the
 [releases page](https://github.com/WhatTFF/Unplug/releases/latest) and install it.
 
-**2.2.9 is the current release, and the banner will offer it.** It changes one thing: after you accept the open gate, that app opens straight through for the next 30 seconds instead of asking again on a quick detour out and back. Everything else is 2.2.8.
+**2.3.0 is the current release, and the banner will offer it.** It adds per-group time alerts — a notification when a group has 15 minutes or 50% of its limit left, or whatever you pick — and stops the open gate reopening in a loop when a search bar or keyboard appears. Everything from 2.2.9 is included.
 
 - Android 7.0 or newer
 - ~51 MB
