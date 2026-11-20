@@ -73,6 +73,46 @@ void main() {
       expect(restored.breakReminderMinutes, equals(25));
     });
 
+    test('time alerts default off and preserve selected thresholds', () {
+      final group = AppGroup(
+        name: 'Social',
+        packageNames: const [],
+        timeLimitMinutes: 60,
+      );
+      expect(group.timeAlertEnabled, isFalse);
+      expect(group.timeAlertMinutes, isEmpty);
+      expect(group.timeAlertPercentages, isEmpty);
+
+      group.timeAlertEnabled = true;
+      group.timeAlertMinutes = [15, 5];
+      group.timeAlertPercentages = [50];
+      final restored = AppGroup.fromJson(group.toJson());
+      expect(restored.timeAlertEnabled, isTrue);
+      expect(restored.timeAlertMinutes, [5, 15]);
+      expect(restored.timeAlertPercentages, [50]);
+    });
+
+    test('time alert thresholds fire when crossed, not on every check', () {
+      final group = AppGroup(
+        name: 'Social',
+        packageNames: const [],
+        timeLimitMinutes: 60,
+        timeAlertEnabled: true,
+        timeAlertMinutes: [15],
+        timeAlertPercentages: [50],
+      );
+      expect(group.crossedTimeAlerts(
+        previousUsedMinutes: 20,
+        currentUsedMinutes: 46,
+        effectiveLimitMinutes: 60,
+      ), ['15 minutes left', '50% of time left']);
+      expect(group.crossedTimeAlerts(
+        previousUsedMinutes: 46,
+        currentUsedMinutes: 47,
+        effectiveLimitMinutes: 60,
+      ), isEmpty);
+    });
+
     test('a group stored before these fields loads as off', () {
       // Exactly the shape written by an older build. Loading must not throw
       // and must not switch anything on — the Kotlin side reads the same keys
@@ -85,6 +125,9 @@ void main() {
       expect(restored.breakReminderEnabled, isFalse);
       expect(restored.openGateEnabled, isFalse);
       expect(restored.breakReminderMinutes, equals(10));
+      expect(restored.timeAlertEnabled, isFalse);
+      expect(restored.timeAlertMinutes, isEmpty);
+      expect(restored.timeAlertPercentages, isEmpty);
     });
 
     test('breakReminderMinutes is clamped to a sane range', () {

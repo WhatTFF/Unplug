@@ -6,6 +6,11 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.content.Intent
 import android.content.Context
 import android.app.usage.UsageStatsManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import androidx.core.app.NotificationCompat
+import android.view.inputmethod.InputMethodManager
 import android.util.Log
 import android.content.SharedPreferences
 import org.json.JSONArray
@@ -116,6 +121,46 @@ class UsageAccessibilityService : AccessibilityService() {
             return false
         }
         return true
+    }
+
+    /**
+     * How long a switch away from a gated app must last before the gate closes.
+     *
+     * Keyboards, in-app popups and permission dialogs all report their own
+     * package as foreground for a moment. Acting on those immediately is what
+     * made the gate vanish and reopen in a loop while the user was still in
+     * the app. The delay lets a transient window come and go first; a real
+     * switch to another app still closes the gate.
+     */
+    private val GATE_DISMISS_DELAY_MS = 1_500L
+
+    private val gateDismissCheck = Runnable {
+        if (overlayActive && overlayMode == "gate" && overlayGroup != lastForegroundPkg) {
+            Log.i(TAG, "open gate closed after leaving $overlayGroup")
+            removeOverlay()
+        }
+    }
+
+    // ─── Input methods ──────────────────────────────────────────────────
+    //
+    // An open keyboard is its own window with its own package. Third-party
+    // keyboards (Samsung, SwiftKey, ...) are not covered by the com.android /
+    // com.google.android filters, so without this they read as "left the app".
+    // That closed the open gate whenever a search box was tapped, and ended
+    // break sessions for the same reason.
+    private var imePackages: Set<String> = emptySet()
+    private var imePackagesFetchedAt = 0L
+
+    private fun enabledImePackages(): Set<String> {
+        val now = System.currentTimeMillis()
+        if (now - imePackagesFetchedAt < 60_000L) return imePackages
+        imePackagesFetchedAt = now
+        return try {
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.enabledInputMethodList.map { it.packageName }.toSet().also { imePackages = it }
+        } catch (_: Exception) {
+            imePackages
+        }
     }
 
     // ─── Continuous-use session ─────────────────────────────────────────
@@ -267,6 +312,7 @@ class UsageAccessibilityService : AccessibilityService() {
             val totalLimit = effectiveLimitMinutes(groupName, limit, usedMinutes, prefs)
             if (totalLimit == 0) { blockApp(pkg, groupName); return }
 
+            checkTimeAlerts(g, usedMinutes, totalLimit)
             if (usedMinutes >= totalLimit) {
                 Log.i(TAG, "block $pkg ($groupName): ${usedMinutes}m >= ${totalLimit}m")
                 blockApp(pkg, groupName)
@@ -1051,7 +1097,8 @@ class UsageAccessibilityService : AccessibilityService() {
             pkg.startsWith("com.android.") ||
             pkg.startsWith("com.systemui") ||
             pkg.startsWith("com.google.android.") ||
-            pkg == "android"
+            pkg == "android" ||
+            pkg in enabledImePackages()
 
     /**
      * A restricted app lost or gained the foreground. Ends the previous
@@ -1101,9 +1148,16 @@ class UsageAccessibilityService : AccessibilityService() {
         if (pkg != gateShownFor) gateShownFor = ""
 
         // Walking away from the gate closes it rather than leaving an
-        // unclosable overlay over the launcher.
+        // unclosable overlay over the launcher. Deferred: a keyboard or an
+        // in-app popup reports its own package as foreground for a moment,
+        // and tearing the gate down for that is what made it flap open and
+        // closed while the user was still in the app.
+        if (overlayMode == "gate" && overlayGroup == pkg) {
+            overlayHandler.removeCallbacks(gateDismissCheck)
+        }
         if (overlayMode == "gate" && overlayGroup != pkg) {
-            removeOverlay()
+            overlayHandler.removeCallbacks(gateDismissCheck)
+            overlayHandler.postDelayed(gateDismissCheck, GATE_DISMISS_DELAY_MS)
         }
 
         try {
@@ -1236,6 +1290,115 @@ class UsageAccessibilityService : AccessibilityService() {
         }
     }
 
+    /** Last (day, usage) pair already evaluated per group, to skip pointless work. */
+    private val lastAlertCheck = mutableMapOf<String, Pair<Long, Int>>()
+
+    /**
+     * Posts a notification when a group's remaining time crosses one of its
+     * opted-in thresholds.
+     *
+     * Called from the enforcement path, so it runs while the group's apps are
+     * actually being used — the only moment the reading moves. Each threshold
+     * fires at most once per day, and the day key follows the reset hour:
+     * opening Unplug is not required for the day to roll over.
+     *
+     * Several thresholds can already be passed the first time a group is seen
+     * (for example, alerts enabled when only ten minutes are left). Only the
+     * most urgent of those is put in the notification; the rest are marked as
+     * fired so they cannot arrive as a second notification a minute later.
+     */
+    private fun checkTimeAlerts(group: JSONObject, used: Int, limit: Int) {
+        if (!group.optBoolean("timeAlertEnabled", false) || limit <= 0) return
+
+        val groupName = group.optString("name", "")
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val day = dayStart(prefs).timeInMillis
+        val stamp = Pair(day, used)
+        // The reading only moves once a minute, and this runs on every
+        // accessibility event. Re-evaluating the same number re-reads the
+        // fired set for nothing.
+        if (lastAlertCheck[groupName] == stamp) return
+
+        val remaining = limit - used
+        val firedKey = "flutter.time_alerts_fired_${groupName.hashCode()}_$day"
+        val already = prefs.getStringSet(firedKey, emptySet())?.toMutableSet() ?: mutableSetOf()
+
+        // key -> notification text, plus the threshold in whole minutes so the
+        // most urgent crossed alert can be picked across both units.
+        val crossed = mutableListOf<Triple<String, String, Int>>()
+        group.optJSONArray("timeAlertMinutes")?.let { minutes ->
+            for (i in 0 until minutes.length()) {
+                val value = minutes.optInt(i, -1)
+                if (value > 0 && remaining <= value) {
+                    crossed.add(Triple("${value}m", "$value minutes left", value))
+                }
+            }
+        }
+        group.optJSONArray("timeAlertPercentages")?.let { percentages ->
+            for (i in 0 until percentages.length()) {
+                val value = percentages.optInt(i, -1)
+                if (value in 1..99 && remaining * 100 <= limit * value) {
+                    crossed.add(
+                        Triple(
+                            "${value}p",
+                            "$value% of screen time left",
+                            limit * value / 100,
+                        )
+                    )
+                }
+            }
+        }
+        val fresh = crossed.filter { !already.contains(it.first) }
+        if (fresh.isEmpty()) {
+            lastAlertCheck[groupName] = stamp
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) return
+
+        fresh.forEach { already.add(it.first) }
+        prefs.edit().putStringSet(firedKey, already).apply()
+        lastAlertCheck[groupName] = stamp
+
+        val urgent = fresh.minByOrNull { it.third }!!
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    "time_alerts",
+                    "Screen time alerts",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply { description = "Remaining screen time in a group" }
+            )
+        }
+
+        // Tapping the alert opens Unplug rather than doing nothing. The
+        // activity is already the app's only entry point.
+        val openApp = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
+        val body = "Only ${urgent.second}"
+        val notification = NotificationCompat.Builder(this, "time_alerts")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Time left in $groupName")
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(openApp)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        manager.notify((groupName + day).hashCode(), notification)
+        Log.i(TAG, "time alert for $groupName: ${urgent.second} (limit=${limit}m used=${used}m)")
+    }
+
     private fun blockApp(pkg: String, group: String, feature: String? = null) {
         // A real block always wins over the opt-in interstitials — they are
         // questions, not consequences. Only a block defers to another block.
@@ -1320,11 +1483,17 @@ class UsageAccessibilityService : AccessibilityService() {
      */
     private fun showOpenGate(pkg: String, group: String) {
         // Already inside this gate for this entry, or mid-block: nothing to do.
-        if (overlayActive) return
+        if (overlayActive) {
+            Log.i(TAG, "open gate suppressed: ${overlayMode} already showing")
+            return
+        }
         if (gateShownFor == pkg) return
         // Entering the app is what puts the gate up; putting it up must not
         // read as another entry, or it re-arms forever.
         gateShownFor = pkg
+        // The app is in front again; a close scheduled by a transient window
+        // must not fire underneath the gate.
+        overlayHandler.removeCallbacks(gateDismissCheck)
         try {
             val ctx = applicationContext
             val root = overlayRoot(ctx)
@@ -1398,7 +1567,10 @@ class UsageAccessibilityService : AccessibilityService() {
      * itself — it waits for a tap, which is the point of asking.
      */
     private fun showBreakOverlay(pkg: String) {
-        if (overlayActive) return
+        if (overlayActive) {
+            Log.i(TAG, "break reminder suppressed: ${overlayMode} already showing")
+            return
+        }
         try {
             val ctx = applicationContext
             val root = overlayRoot(ctx)
@@ -1586,6 +1758,7 @@ class UsageAccessibilityService : AccessibilityService() {
         overlayChoices = null
         overlayMode = ""
         overlayHandler.removeCallbacks(overlayTick)
+        overlayHandler.removeCallbacks(gateDismissCheck)
     }
 
     private fun launchLockScreenActivity(group: String, feature: String, skipCountdown: Boolean) {
@@ -1628,22 +1801,24 @@ class UsageAccessibilityService : AccessibilityService() {
             val json = prefs.getString("flutter.app_groups", "[]") ?: "[]"
             if (json == "[]") return
             val groups = JSONArray(json)
-            val pkgToGroup = mutableMapOf<String, Pair<String, Int>>()
+            val pkgToGroup = mutableMapOf<String, JSONObject>()
             for (i in 0 until groups.length()) {
                 val g = groups.getJSONObject(i)
                 val pkgs = g.getJSONArray("packageNames")
                 for (j in 0 until pkgs.length()) {
-                    pkgToGroup[pkgs.getString(j).trim()] = Pair(g.getString("name"), g.getInt("timeLimitMinutes"))
+                    pkgToGroup[pkgs.getString(j).trim()] = g
                 }
             }
             val windowList = windows ?: emptyList()
             for (w in windowList) {
                 val root = w.root ?: continue
                 val p = root.packageName?.toString()?.trim() ?: continue
-                val pair = pkgToGroup[p] ?: continue
-                val (name, limit) = pair
+                val group = pkgToGroup[p] ?: continue
+                val name = group.optString("name", "")
+                val limit = group.optInt("timeLimitMinutes", 0)
                 val used = enforcedUsageMinutes(name, prefs)
                 val totalLimit = effectiveLimitMinutes(name, limit, used, prefs)
+                checkTimeAlerts(group, used, totalLimit)
                 if (totalLimit == 0 || used >= totalLimit) {
                     blockApp(p, name); return
                 }

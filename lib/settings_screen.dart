@@ -6,6 +6,7 @@ import 'services/settings_gate.dart';
 import 'services/message_verification.dart';
 import 'services/storage_service.dart';
 import 'services/usage_tracker.dart';
+import 'services/notification_permission.dart';
 import 'models/app_group.dart';
 import 'utils/no_paste_formatter.dart';
 import 'screens/app_picker_screen.dart';
@@ -60,6 +61,134 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // ─── Per-Change Challenge ─────────────────────────────────
+
+  Future<void> _editTimeAlerts(int index) async {
+    final group = _groups[index];
+    final beforeMinutes = group.timeAlertMinutes.toSet();
+    final beforePercentages = group.timeAlertPercentages.toSet();
+    final minutes = Set<int>.from(beforeMinutes);
+    final percentages = Set<int>.from(beforePercentages);
+
+    final selection = await showCupertinoModalPopup<_TimeAlertsSelection>(
+      context: context,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => CupertinoActionSheet(
+          title: Text('${group.name} time alerts'),
+          message: const Text(
+            'A notification when this group is down to the time you pick. '
+            'Adding one is free; removing one asks for a challenge.',
+          ),
+          actions: [
+            for (final value in [60, 30, 15, 5])
+              CupertinoActionSheetAction(
+                onPressed: () => setSheetState(() {
+                  if (!minutes.add(value)) minutes.remove(value);
+                }),
+                child: Text(
+                    '${minutes.contains(value) ? '✓ ' : ''}$value minutes left'),
+              ),
+            for (final value in [75, 50, 25, 10])
+              CupertinoActionSheetAction(
+                onPressed: () => setSheetState(() {
+                  if (!percentages.add(value)) percentages.remove(value);
+                }),
+                child: Text(
+                    '${percentages.contains(value) ? '✓ ' : ''}$value% of time left'),
+              ),
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(
+                sheetContext,
+                _TimeAlertsSelection(Set<int>.from(minutes), Set<int>.from(percentages)),
+              ),
+              child: const Text('Done',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext),
+            child: const Text('Cancel'),
+          ),
+        ),
+      ),
+    );
+    if (selection == null) return;
+
+    final selectedMinutes = selection.minutes.toList()..sort();
+    final selectedPercentages = selection.percentages.toList()
+      ..sort((a, b) => b.compareTo(a));
+    final enabled =
+        selectedMinutes.isNotEmpty || selectedPercentages.isNotEmpty;
+
+    // Opening the sheet and closing it with Done changes nothing, and must not
+    // open a challenge for it.
+    if (_sameInts(selectedMinutes, group.timeAlertMinutes) &&
+        _sameInts(selectedPercentages, group.timeAlertPercentages)) {
+      return;
+    }
+
+    // An alert only interrupts the user sooner: adding one is arming a guard,
+    // so it is free. Removing one takes a warning away, which is the loosening
+    // direction and asks for the challenge.
+    final removesWarning =
+        beforeMinutes.difference(selection.minutes).isNotEmpty ||
+            beforePercentages.difference(selection.percentages).isNotEmpty;
+
+    final apply = () async {
+      setState(() {
+        group.timeAlertMinutes = selectedMinutes;
+        group.timeAlertPercentages = selectedPercentages;
+        group.timeAlertEnabled = enabled;
+      });
+      await _storage.saveGroups(_groups);
+      if (enabled) await _ensureNotificationPermission();
+    };
+
+    if (removesWarning) {
+      _confirmChange(() => apply());
+    } else {
+      await apply();
+    }
+  }
+
+  static bool _sameInts(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  /// Android 13+ drops every notification until the runtime permission is
+  /// granted. Saving is independent of the answer: the alert is configured
+  /// either way, and the dialog says where to allow it.
+  Future<void> _ensureNotificationPermission() async {
+    if (await NotificationPermission.isGranted()) return;
+    final granted = await NotificationPermission.request();
+    if (granted || !mounted) return;
+    await showCupertinoDialog<void>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Notifications are off'),
+        content: const Text(
+          'Android will not show time alerts until notifications are allowed '
+          'for Unplug. The alert is saved either way.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Not now'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          CupertinoDialogAction(
+            child: const Text('Open settings'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              NotificationPermission.openSettings();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   void _confirmChange(VoidCallback action) {
     // Settings Lock off → apply changes instantly, no challenge.
@@ -296,6 +425,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         breakReminderEnabled: group.breakReminderEnabled,
         openGateEnabled: group.openGateEnabled,
         breakReminderMinutes: group.breakReminderMinutes,
+        timeAlertEnabled: group.timeAlertEnabled,
+        timeAlertMinutes: group.timeAlertMinutes,
+        timeAlertPercentages: group.timeAlertPercentages,
       ));
       await _storage.saveGroups(_groups);
     }, loosens: loosensBudget(before, totalMinutes));
@@ -436,6 +568,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           breakReminderEnabled: group.breakReminderEnabled,
           openGateEnabled: group.openGateEnabled,
           breakReminderMinutes: group.breakReminderMinutes,
+          timeAlertEnabled: group.timeAlertEnabled,
+          timeAlertMinutes: group.timeAlertMinutes,
+          timeAlertPercentages: group.timeAlertPercentages,
         );
       });
       await _storage.saveGroups(_groups);
@@ -847,6 +982,13 @@ final bonusSeconds = _storage.remainingBonusSeconds(
             onPressed: () {
               Navigator.pop(context);
               _editBreakReminder(index);
+            },
+          ),
+          CupertinoActionSheetAction(
+            child: Text('Time Alerts: ${group.timeAlertEnabled ? "On" : "Off"}'),
+            onPressed: () {
+              Navigator.pop(context);
+              _editTimeAlerts(index);
             },
           ),
           CupertinoActionSheetAction(
@@ -1282,6 +1424,16 @@ class _BreakReminderResult {
   final int minutes;
 
   const _BreakReminderResult(this.enabled, this.minutes);
+}
+
+/// What the time-alerts sheet was left with. Both sets are returned whole so
+/// the caller can tell an added warning (free) from a removed one (gated)
+/// instead of guessing from the final "on" flag.
+class _TimeAlertsSelection {
+  final Set<int> minutes;
+  final Set<int> percentages;
+
+  const _TimeAlertsSelection(this.minutes, this.percentages);
 }
 
 /// Sets the per-group break reminder: whether it is on, and how long

@@ -308,6 +308,63 @@ void main() {
     });
   });
 
+  // Time alerts are warnings, so their direction is inverted from a budget:
+  // adding one makes the app noisier (free), removing one removes a warning
+  // (challenged). Same rule the tab blockers and interstitials follow.
+  group('time alerts gate the direction that removes a warning', () {
+    Finder groupRow(String label) => find.text(label).first;
+
+    Future<void> openFirstGroupSheet(WidgetTester tester) async {
+      await openSettings(tester);
+      await tester.tap(find.text('Social Media').first);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('adding the first alert is free', (tester) async {
+      await StorageService().setSettingsLockEnabled(true);
+      await openFirstGroupSheet(tester);
+
+      await tester.tap(groupRow('Time Alerts: Off'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('15 minutes left'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirm Change'), findsNothing);
+      final group = StorageService().loadGroups().first;
+      expect(group.timeAlertEnabled, isTrue);
+      expect(group.timeAlertMinutes, [15]);
+    });
+
+    testWidgets('removing an alert is gated', (tester) async {
+      await StorageService().setSettingsLockEnabled(true);
+      await StorageService().saveGroups([
+        AppGroup(
+          name: 'Social Media',
+          packageNames: const ['com.instagram.android'],
+          timeLimitMinutes: 30,
+          timeAlertEnabled: true,
+          timeAlertMinutes: const [15],
+        ),
+      ]);
+      await openFirstGroupSheet(tester);
+
+      await tester.tap(groupRow('Time Alerts: On'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('15 minutes left'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirm Change'), findsOneWidget);
+      final group = StorageService().loadGroups().first;
+      expect(group.timeAlertEnabled, isTrue,
+          reason: 'the warning must stand until the challenge is met');
+      expect(group.timeAlertMinutes, [15]);
+    });
+  });
+
   group('reward per wait is capped', () {
     // The picker must not offer a value above the ceiling. A scrollable that
     // can be dragged past the bound and silently clamped on save tells the

@@ -23,6 +23,8 @@ class MainActivity : FlutterActivity() {
     private var pendingFeature: String? = null
     private var pendingSkipCountdown: Boolean = false
     private var lockScreenActive = false
+    private var pendingNotificationPermission: MethodChannel.Result? = null
+    private val NOTIFICATION_PERMISSION_REQUEST = 4711
 
     private fun enableOverlay() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -56,6 +58,16 @@ class MainActivity : FlutterActivity() {
                 }
                 "hasOverlayPermission" -> {
                     result.success(Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this))
+                }
+                "hasNotificationPermission" -> {
+                    result.success(hasNotificationPermission())
+                }
+                "requestNotificationPermission" -> {
+                    requestNotificationPermission(result)
+                }
+                "openNotificationSettings" -> {
+                    openNotificationSettings()
+                    result.success(true)
                 }
                 "requestOverlayPermission" -> {
                     enableOverlay()
@@ -124,6 +136,65 @@ class MainActivity : FlutterActivity() {
             }
         }
         handleIntent(intent)
+    }
+
+    /**
+     * Android 13+ gates notifications behind a runtime permission. Without
+     * this the time-alert channel exists but every post is dropped silently,
+     * which reads as the feature being broken rather than as a permission.
+     */
+    private fun hasNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+
+    private fun requestNotificationPermission(result: MethodChannel.Result) {
+        if (hasNotificationPermission()) {
+            result.success(true)
+            return
+        }
+        // Android shows one dialog at a time; a second request while the first
+        // is still open would be answered by the system with no result.
+        if (pendingNotificationPermission != null) {
+            result.success(false)
+            return
+        }
+        pendingNotificationPermission = result
+        requestPermissions(
+            arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+            NOTIFICATION_PERMISSION_REQUEST,
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != NOTIFICATION_PERMISSION_REQUEST) return
+        pendingNotificationPermission?.success(
+            grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+        )
+        pendingNotificationPermission = null
+    }
+
+    private fun openNotificationSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+        } catch (_: Exception) {
+            // Not every OEM ships the per-app notification screen. The app
+            // details page still gets the user within one tap of it.
+            try {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                })
+            } catch (_: Exception) {}
+        }
     }
 
     private fun openInstallPermissionSettings() {

@@ -58,6 +58,12 @@ class AppGroup {
   /// instantly or effectively never.
   int breakReminderMinutes;
 
+  /// Remaining-time alerts are opt-in per group. Values encode either minutes
+  /// remaining or the percentage of the effective daily limit remaining.
+  bool timeAlertEnabled;
+  List<int> timeAlertMinutes;
+  List<int> timeAlertPercentages;
+
   static const int defaultBreakReminderMinutes = 10;
   static const int minBreakReminderMinutes = 1;
   static const int maxBreakReminderMinutes = 60;
@@ -70,15 +76,55 @@ class AppGroup {
     this.breakReminderEnabled = false,
     this.openGateEnabled = false,
     int breakReminderMinutes = defaultBreakReminderMinutes,
+    this.timeAlertEnabled = false,
+    List<int> timeAlertMinutes = const [],
+    List<int> timeAlertPercentages = const [],
   })  : bannedFeatures = bannedFeatures ?? [],
         breakReminderMinutes = breakReminderMinutes.clamp(
           minBreakReminderMinutes,
           maxBreakReminderMinutes,
-        );
+        ),
+        timeAlertMinutes = timeAlertMinutes
+            .where((value) => value > 0)
+            .toSet()
+            .toList()
+          ..sort(),
+        timeAlertPercentages = timeAlertPercentages
+            .where((value) => value > 0 && value < 100)
+            .toSet()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
 
   int getRemainingTime(int totalUsageMinutes, {int bonusMinutes = 0}) {
     final effective = timeLimitMinutes + bonusMinutes - totalUsageMinutes;
     return effective < 0 ? 0 : effective;
+  }
+
+  /// Thresholds crossed between two usage readings; each threshold fires once.
+  List<String> crossedTimeAlerts({
+    required int previousUsedMinutes,
+    required int currentUsedMinutes,
+    required int effectiveLimitMinutes,
+  }) {
+    if (!timeAlertEnabled || effectiveLimitMinutes <= 0 ||
+        currentUsedMinutes <= previousUsedMinutes) {
+      return [];
+    }
+    final previousRemaining = effectiveLimitMinutes - previousUsedMinutes;
+    final currentRemaining = effectiveLimitMinutes - currentUsedMinutes;
+    final alerts = <String>[];
+    for (final minutes in timeAlertMinutes) {
+      if (previousRemaining > minutes && currentRemaining <= minutes) {
+        alerts.add('$minutes minutes left');
+      }
+    }
+    for (final percentage in timeAlertPercentages) {
+      final threshold = effectiveLimitMinutes * percentage / 100;
+      if (previousRemaining > threshold && currentRemaining <= threshold) {
+        alerts.add('$percentage% of time left');
+      }
+    }
+    return alerts;
   }
 
   Map<String, dynamic> toJson() => {
@@ -89,13 +135,13 @@ class AppGroup {
     'breakReminderEnabled': breakReminderEnabled,
     'openGateEnabled': openGateEnabled,
     'breakReminderMinutes': breakReminderMinutes,
+    'timeAlertEnabled': timeAlertEnabled,
+    'timeAlertMinutes': timeAlertMinutes,
+    'timeAlertPercentages': timeAlertPercentages,
   };
 
-  // Every field above the flags is required, but a stored payload written by an
-  // older build simply has no break-reminder or open-gate keys. They default
-  // to off rather than being inferred, so upgrading never turns friction on for
-  // someone who never asked for it. The Kotlin side reads them with optBoolean
-  // for the same reason — see UsageAccessibilityService.
+  // Older builds have no opt-in reminder or alert keys. They default to off,
+  // so upgrading never silently adds friction or notifications.
   factory AppGroup.fromJson(Map<String, dynamic> json) => AppGroup(
         name: json['name'] as String,
         packageNames: List<String>.from(json['packageNames'] as List),
@@ -109,6 +155,12 @@ class AppGroup {
         openGateEnabled: json['openGateEnabled'] as bool? ?? false,
         breakReminderMinutes: (json['breakReminderMinutes'] as int?) ??
             defaultBreakReminderMinutes,
+        timeAlertEnabled: json['timeAlertEnabled'] as bool? ?? false,
+        timeAlertMinutes: json['timeAlertMinutes'] == null
+            ? []
+            : List<int>.from(json['timeAlertMinutes'] as List),
+        timeAlertPercentages: json['timeAlertPercentages'] == null
+            ? []
+            : List<int>.from(json['timeAlertPercentages'] as List),
       );
 }
-

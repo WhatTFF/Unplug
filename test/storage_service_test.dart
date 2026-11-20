@@ -350,6 +350,28 @@ void main() {
       );
     });
 
+    test('the Kotlin side reads the time-alert keys Dart writes', () {
+      // Alerts are posted natively, so the only thing connecting the settings
+      // switch to a notification is these key names. A rename on either side
+      // would leave the switch toggling in Settings and no alert ever arriving.
+      final source = File(
+        'android/app/src/main/kotlin/com/egbytest/unplug/UsageAccessibilityService.kt',
+      ).readAsStringSync();
+
+      for (final key in [
+        'timeAlertEnabled',
+        'timeAlertMinutes',
+        'timeAlertPercentages',
+      ]) {
+        expect(
+          source,
+          contains('"$key"'),
+          reason: 'UsageAccessibilityService must read "$key", the key '
+              'AppGroup.toJson writes it under',
+        );
+      }
+    });
+
     // The exact bug the user reported: at 50m used against a 40m limit, a 5m
     // bonus used to raise the ceiling to 45m — still under the usage, so it
     // appeared to do nothing and had to be earned three times over.

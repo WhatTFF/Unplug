@@ -15,6 +15,9 @@
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-GPL--3.0-blue?style=for-the-badge&logo=gnu" alt="License: GPL-3.0">
   </a>
+  <a href="https://hub.xerj.org/contributors/WhatTFF">
+    <img src="https://hub.xerj.org/contributors/WhatTFF/badge.svg" alt="XERJ Corpus Hub contributor">
+  </a>
 </p>
 
 <p align="center">
@@ -99,21 +102,23 @@ These manufacturers bury the accessibility list somewhere different, and their b
 
 ---
 
-## Two more ways to catch yourself
+## Three more ways to catch yourself
 
-Both are **off by default** and both are set **per group**, so you can gate a messaging app and leave a two-tap calculator alone. Settings → tap a group → the two rows at the bottom of the sheet.
+All three are **off by default** and set **per group**, so you can gate a messaging app and leave a two-tap calculator alone. Settings → tap a group → the three rows at the bottom of the sheet.
 
-**Open gate.** Every time you open one of that group's apps, a full-screen countdown runs with no way through. After five seconds two buttons appear: **Open Instagram**, or **Go back**. The app isn't closed or paused behind it — the gate is just a question, asked on top of an app that already launched. Leaving the screen dismisses it. **Go back** takes you to your home screen, not to whatever app you tapped the icon in — if you came from TikTok, it doesn't hand you TikTok. **Open** counts as an answer: leave and come back within 30 seconds and that app opens straight through, because asking the same question twice in half a minute isn't a decision. After 30 seconds the gate asks again.
+**Open gate.** Every time you open one of that group's apps, a full-screen countdown runs with no way through. After five seconds two buttons appear: **Open Instagram**, or **Go back**. The app isn't closed or paused behind it — the gate is just a question, asked on top of an app that already launched. Leaving the screen dismisses it. **Go back** takes you to your home screen, not to whatever app you tapped the icon in — if you came from TikTok, it doesn't hand you TikTok. **Open** counts as an answer: leave and come back within 30 seconds and that app opens straight through, because asking the same question twice in half a minute isn't a decision. After 30 seconds the gate asks again. Only one gate can be on screen at a time, and tapping a search bar or opening the keyboard no longer dismisses and reopens it in a loop.
 
 **Break reminder.** After you've been in one of that group's apps *continuously* for a set number of minutes (10 by default, 1–60 if you prefer), it asks whether this was meant to be a long sit or a quick check. It doesn't dismiss itself and it doesn't close anything — after five seconds a **Close** button appears, and it's waiting for you.
 
-Both work the same way the lock screen does: a real system-level overlay, drawn over everything including the launcher. And both lose to the time limit — if you're out, you get the lock screen, not a gentler version of it.
+**Time alerts.** A notification when this group is down to a time you choose — **15 minutes left**, **50% of its limit**, or several at once. Each threshold fires once a day, while you're actually using the group, and the notification names the group and what's left. On Android 13+ you'll be asked for notification permission the first time you turn one on; without it Android drops the alert silently.
 
-Switching one **on** is free — same as the tab blockers, where turning Snapchat Spotlight on never asks anything. You're arming a guard on yourself, and that shouldn't cost you a wait. Switching one **off** asks the challenge, because that's the direction that takes the guard away.
+The open gate and the break reminder work the same way the lock screen does: a real system-level overlay, drawn over everything including the launcher. And both lose to the time limit — if you're out, you get the lock screen, not a gentler version of it.
+
+Switching one **on** is free — same as the tab blockers, where turning Snapchat Spotlight on never asks anything. You're arming a guard on yourself, and that shouldn't cost you a wait. Switching one **off** asks the challenge, because that's the direction that takes the guard away. Time alerts follow the same rule one level down: adding an alert is free, because it warns you sooner, and removing one asks, because it takes a warning away.
 
 The **break reminder**'s interval follows the same rule, because it is a budget too: it's how long you can use the app before it interrupts. Shortening it — 10m down to 5m — interrupts you sooner, so it's free. Lengthening it buys more uninterrupted time, so that's the direction that asks. Choosing the interval in the same pass that switches the reminder on is free either way, since that's part of arming it.
 
-Creating a group is free as well. A new group starts at the default limit with both of these off, so it can't loosen anything.
+Creating a group is free as well. A new group starts at the default limit with all three off, so it can't loosen anything.
 
 The same rule governs the numbers — the daily limit, the reward per wait, the wait itself. Only the direction that makes things easier asks; see [Making settings stick](#making-settings-stick).
 
@@ -178,6 +183,8 @@ Concretely:
 | Wait duration 60s → 30s | Yes — same reward, less effort |
 | Break reminder 10m → 5m | No — it interrupts you sooner |
 | Break reminder 5m → 10m | Yes — more time before it asks |
+| Time alert added (none → 15m) | No — it warns you sooner |
+| Time alert removed (15m → none) | Yes — it removes a warning |
 
 The wait is the one that reads backwards, and deliberately: it's the price of a reward rather than a budget, so its permissive end is the lower one. Making it longer costs you more for the same thing, which is you tightening it.
 
